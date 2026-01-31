@@ -3,9 +3,9 @@ services:
     name: messenger-backend
     env: node
     plan: free
-    rootDir: server
-    buildCommand: npm install
-    startCommand: node index.js
+    # Remove rootDir and use explicit commands for better reliability
+    buildCommand: "cd server && npm install"
+    startCommand: "cd server && node index.js"
     envVars:
       - key: NODE_VERSION
         value: 18 # Or your preferred version
