@@ -21,39 +21,38 @@ const io = new Server(server, {
     }
 });
 
-// Store connected users (socket.id -> status)
-// In a real app, mapping would be userId -> socketId
-const connectedUsers = new Map(); // socketId -> { userId, username }
+// Store connected users (userId -> socketId)
+const connectedUsers = new Map();
 
 io.on('connection', (socket) => {
     console.log(`User connected: ${socket.id}`);
 
-    socket.on('login', (username) => {
-        // Simple login: userId = socket.id (for now, or generate UUID)
-        // In real app, userId persists. Here, session = connection.
-        const userId = socket.id;
-        const user = { userId, username, socketId: socket.id };
+    socket.on('login', (userId) => {
+        if (!userId) return;
 
-        connectedUsers.set(socket.id, user);
-        console.log(`User logged in: ${username} (${userId})`);
+        // Map this UID to the current socket ID
+        connectedUsers.set(userId, socket.id);
+        socket.userId = userId; // Store on socket for easy cleanup
 
-        // Broadcast updated user list to ALL clients
-        const userList = Array.from(connectedUsers.values());
-        io.emit('user_list', userList);
+        console.log(`User logged in: ${userId}`);
 
-        // Acknowledge login to sender
-        socket.emit('login_success', user);
+        // Broadcast a simple "user status changed" event if needed
+        // For now, our side bar will be mostly Firestore-driven
+        io.emit('user_online', userId);
     });
 
     socket.on('message', (data) => {
-        // data: { text, senderId, recipientId (optional), conversationId, ... }
-        console.log(`Message from ${data.senderId}: ${data.text}`);
+        // data: { text, senderId, recipientId (optional), ... }
+        console.log(`Message from ${data.senderId} to ${data.recipientId}: ${data.text}`);
 
         if (data.recipientId) {
-            // Private Message
-            io.to(data.recipientId).emit('receive_message', data);
+            // Private Message: Find the socket ID for the recipient UID
+            const recipientSocketId = connectedUsers.get(data.recipientId);
+            if (recipientSocketId) {
+                io.to(recipientSocketId).emit('receive_message', data);
+            }
 
-            // Also send back to sender so they confirm receipt
+            // Send back to sender for confirmation
             socket.emit('receive_message', data);
         } else {
             // Broadcast (Public/Group)
@@ -62,11 +61,10 @@ io.on('connection', (socket) => {
     });
 
     socket.on('disconnect', () => {
-        console.log(`User disconnected: ${socket.id}`);
-        if (connectedUsers.has(socket.id)) {
-            connectedUsers.delete(socket.id);
-            // Broadcast updated list
-            io.emit('user_list', Array.from(connectedUsers.values()));
+        console.log(`User disconnected: ${socket.userId || socket.id}`);
+        if (socket.userId) {
+            connectedUsers.delete(socket.userId);
+            io.emit('user_offline', socket.userId);
         }
     });
 });

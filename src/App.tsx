@@ -6,80 +6,94 @@ import NewChatModal from './components/NewChatModal';
 import SettingsModal from './components/SettingsModal';
 // import LoginModal from './components/LoginModal'; // Replaced by AuthPage
 import AuthPage from './components/auth/AuthPage';
-import { MOCK_CONVERSATIONS, INITIAL_MESSAGES, type Message, type Conversation } from './data/mockData';
+import { type Message, type Conversation } from './data/mockData';
 import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { db } from './lib/firebase';
+import { collection, onSnapshot, query, where } from 'firebase/firestore';
 import { useSocket } from './hooks/useSocket';
 import { Loader2 } from 'lucide-react';
 
-interface User {
-  userId: string;
-  username: string;
-  socketId: string;
-}
+
 
 function AuthenticatedApp() {
-  const [conversations, setConversations] = useState<Conversation[]>(MOCK_CONVERSATIONS);
-  const [messages, setMessages] = useState<Record<string, Message[]>>(INITIAL_MESSAGES);
-  const [activeConversationId, setActiveConversationId] = useState<string>(MOCK_CONVERSATIONS[0].id);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [messages, setMessages] = useState<Record<string, Message[]>>({});
+  const [activeConversationId, setActiveConversationId] = useState<string>('');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isNewChatOpen, setIsNewChatOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
-  const [onlineUsers, setOnlineUsers] = useState<User[]>([]);
-
   const { currentUser: firebaseUser } = useAuth();
-  const { socket, isConnected } = useSocket();
+  const { isConnected, login, sendMessage, receivedMessage } = useSocket();
 
-  const activeConversation = conversations.find(c => c.id === activeConversationId) || conversations[0];
-  const activeMessages = messages[activeConversationId] || [];
-
-  // Auto-login to socket when Firebase Auth is ready
+  // Firestore: Fetch Users
   useEffect(() => {
-    if (socket && firebaseUser) {
-      socket.emit('login', firebaseUser.displayName || firebaseUser.email || 'Anonymous');
-    }
-  }, [socket, firebaseUser]);
+    if (!firebaseUser) return;
 
-  // Socket Events
-  useEffect(() => {
-    if (!socket) return;
+    const q = query(collection(db, 'users'), where('uid', '!=', firebaseUser.uid));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const usersList = snapshot.docs.map(doc => ({
+        id: doc.id,
+        name: doc.data().name,
+        avatar: doc.data().avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(doc.data().name)}`,
+        status: doc.data().status || 'offline',
+        lastMessage: 'Say hi!',
+        unreadCount: 0,
+        recipientId: doc.id // Add this for routing
+      } as Conversation));
 
-    // Removed socket.on('login_success') as login is now handled by AuthContext
-
-    socket.on('user_list', (users: User[]) => {
-      setOnlineUsers(users);
+      setConversations(usersList);
+      if (!activeConversationId && usersList.length > 0) {
+        setActiveConversationId(usersList[0].id);
+      }
     });
 
-    socket.on('receive_message', (data: Message & { conversationId?: string }) => {
-      const { conversationId, ...message } = data;
+    return unsubscribe;
+  }, [firebaseUser, activeConversationId]);
+
+  // Socket: Sync with Auth
+  useEffect(() => {
+    if (firebaseUser?.uid) {
+      login(firebaseUser.uid);
+    }
+  }, [firebaseUser, login]);
+
+  // Socket: Handle incoming messages
+  useEffect(() => {
+    if (receivedMessage) {
+      const { senderId, text, timestamp } = receivedMessage;
+
+      // Determine which "conversation" this belongs to
+      // If it's from me, it goes to the active recipient
+      // If it's to me, it goes to the sender's conversation
+      const conversationId = senderId === firebaseUser?.uid ? receivedMessage.recipientId : senderId;
 
       if (conversationId) {
-        // Play sound if message is not from 'me' (and not from myself across tabs, roughly)
-        // Better check: message.sender !== currentUser?.username
-        if (message.sender !== 'me' && message.sender !== (firebaseUser?.displayName || firebaseUser?.email)) {
+        // Play notification if not active or not from me
+        if (senderId !== firebaseUser?.uid && conversationId !== activeConversationId) {
           const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3');
           audio.volume = 0.5;
           audio.play().catch(e => console.log('Audio play failed:', e));
         }
 
+        const newMessage: Message = {
+          id: Date.now().toString() + Math.random(),
+          text,
+          sender: senderId === firebaseUser?.uid ? 'me' : 'other',
+          timestamp: timestamp || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        };
+
         setMessages(prev => ({
           ...prev,
-          [conversationId]: [...(prev[conversationId] || []), message]
+          [conversationId]: [...(prev[conversationId] || []), newMessage]
         }));
-
-        setConversations(prev => prev.map(c =>
-          c.id === conversationId ? { ...c, lastMessage: message.text, unreadCount: c.id === activeConversationId ? 0 : c.unreadCount + 1 } : c
-        ));
       }
-    });
+    }
+  }, [receivedMessage, firebaseUser]);
 
-    return () => {
-      // socket.off('login_success'); // Removed
-      socket.off('user_list');
-      socket.off('receive_message');
-    };
-  }, [socket, activeConversationId, firebaseUser]);
+  const activeConversation = conversations.find(c => c.id === activeConversationId);
+  const activeMessages = messages[activeConversationId] || [];
 
   const handleSelectConversation = (id: string) => {
     setActiveConversationId(id);
@@ -107,47 +121,16 @@ function AuthenticatedApp() {
   };
 
   const handleSendMessage = (text: string) => {
-    if (!firebaseUser) return;
+    if (!firebaseUser || !activeConversationId) return;
 
-    const senderName = firebaseUser.displayName || firebaseUser.email || 'Anonymous';
-
-    const newMessage: Message = {
-      id: Date.now().toString(),
+    const payload = {
       text,
-      sender: senderName, // Send actual username
+      senderId: firebaseUser.uid,
+      recipientId: activeConversationId, // Each user is their own conversation ID
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
 
-    if (socket) {
-      let recipientId;
-
-      // Determine if this is a DM
-      const currentConversation = conversations.find(c => c.id === activeConversationId);
-      if (currentConversation?.recipientUsername) {
-        // Find recipient's socket ID from online list
-        const recipient = onlineUsers.find(u => u.username === currentConversation.recipientUsername);
-        if (recipient) {
-          recipientId = recipient.socketId;
-        } else {
-          // User offline? For now, we fall back to broadcast OR ideally handle offline logic (queue on server, DB)
-          // But server discards unicast if socket not found.
-          // Let's rely on server broadcasting if no recipientId? 
-          // NO, if it's meant to be private, DO NOT broadcast.
-          // Just send without recipientId? No, that broadcasts.
-          // We can warn user "User is offline" locally.
-          console.warn("Recipient offline or not found");
-          // For prototype: we just send. If checks fail on server, so be it. 
-          // But wait, if I don't send recipientId, server broadcasts to EVERYONE. That's bad for privacy.
-          // So if I have a recipientUsername but no online user match -> DO NOT SEND or send with dead ID.
-        }
-      }
-
-      socket.emit('message', {
-        conversationId: activeConversationId,
-        recipientId, // Send this if found
-        ...newMessage
-      });
-    }
+    sendMessage(payload);
   };
 
   return (
@@ -164,7 +147,7 @@ function AuthenticatedApp() {
           onSettings={() => setIsSettingsOpen(true)}
         />
         <ChatWindow
-          conversation={activeConversation}
+          conversation={activeConversation || { id: 'empty', name: 'Select a chat', avatar: '', status: 'offline', lastMessage: '', unreadCount: 0 }}
           messages={activeMessages}
           onSendMessage={handleSendMessage}
         />
@@ -174,7 +157,7 @@ function AuthenticatedApp() {
         isOpen={isNewChatOpen}
         onClose={() => setIsNewChatOpen(false)}
         onCreateChat={handleCreateChat}
-        onlineUsers={onlineUsers.filter(u => u.username !== (firebaseUser?.displayName || firebaseUser?.email))}
+        onlineUsers={[]} // Placeholder for now or removed
       />
 
       <SettingsModal

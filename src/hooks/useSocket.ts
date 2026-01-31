@@ -1,14 +1,14 @@
 
 import { useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
-import type { Message } from '../data/mockData';
 
 const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3001';
 
 export const useSocket = () => {
     // Initialize socket once
-    const [socket] = useState(() => io(SERVER_URL));
+    const [socket] = useState(() => io(SERVER_URL, { autoConnect: false }));
     const [isConnected, setIsConnected] = useState(false);
+    const [receivedMessage, setReceivedMessage] = useState<any>(null);
 
     useEffect(() => {
         // Ensure socket is connected (handling Strict Mode double-mount)
@@ -26,6 +26,10 @@ export const useSocket = () => {
             setIsConnected(false);
         });
 
+        socket.on('receive_message', (data) => {
+            setReceivedMessage(data);
+        });
+
         return () => {
             socket.off('connect');
             socket.off('disconnect');
@@ -33,9 +37,18 @@ export const useSocket = () => {
         };
     }, [socket]);
 
-    const sendMessage = (data: Message) => {
+    const login = (userId: string) => {
+        if (socket.connected) {
+            socket.emit('login', userId);
+        } else {
+            socket.connect();
+            socket.once('connect', () => socket.emit('login', userId));
+        }
+    };
+
+    const sendMessage = (data: any) => {
         socket.emit('message', data);
     };
 
-    return { socket, isConnected, sendMessage };
+    return { socket, isConnected, login, sendMessage, receivedMessage };
 };

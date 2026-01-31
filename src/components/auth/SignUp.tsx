@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { auth } from '../../lib/firebase';
+import { auth, db } from '../../lib/firebase';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { UserPlus, Loader2 } from 'lucide-react';
 
 interface SignUpProps {
@@ -23,6 +24,16 @@ const SignUp: React.FC<SignUpProps> = ({ onSwitchToLogin }) => {
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             await updateProfile(userCredential.user, {
                 displayName: name
+            });
+
+            // Save user profile to Firestore
+            await setDoc(doc(db, 'users', userCredential.user.uid), {
+                uid: userCredential.user.uid,
+                name: name,
+                email: email,
+                avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`,
+                status: 'online',
+                lastSeen: serverTimestamp()
             });
         } catch (err: any) {
             setError(err.message || 'Failed to create account');
