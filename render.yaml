@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: messenger-backend
+    env: node
+    plan: free
+    rootDir: server
+    buildCommand: npm install
+    startCommand: node index.js
+    envVars:
+      - key: NODE_VERSION
+        value: 18 # Or your preferred version
+      - key: FRONTEND_URL
+        sync: false # User will need to set this after firebase deployment
