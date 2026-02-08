@@ -4,6 +4,24 @@ export interface Message {
     text: string;
     sender: string;
     timestamp: string;
+    createdAt?: number; // timestamp for logic
+    image?: string;
+    reactions?: Record<string, number>; // emoji -> count
+    userReactions?: Record<string, string>; // userId -> emoji
+    isEdited?: boolean;
+    // Message status tracking
+    status?: 'sending' | 'sent' | 'delivered' | 'read';
+    senderName?: string;
+    senderAvatar?: string;
+    deliveredAt?: number;
+    readAt?: number;
+    // Reply threading
+    replyTo?: {
+        id: string;
+        text: string;
+        sender: string;
+        image?: string;
+    };
 }
 
 export interface Conversation {
@@ -14,6 +32,13 @@ export interface Conversation {
     unreadCount: number;
     recipientUsername?: string; // For DM routing
     status: 'online' | 'busy' | 'away' | 'offline'; // Updated status types
+    // Group chat properties
+    isGroup?: boolean;
+    members?: string[]; // Array of user IDs
+    memberNames?: Record<string, string>; // userId -> display name
+    admins?: string[]; // Array of admin user IDs
+    createdBy?: string; // User ID of creator
+    createdAt?: number; // Timestamp
 }
 
 export const MOCK_CONVERSATIONS: Conversation[] = [

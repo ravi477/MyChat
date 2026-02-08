@@ -1,40 +1,26 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 :root {
-  /* Colors - Polished Premium Palette (Dark Default) */
+  /* Base Colors (Dark Mode Default) */
   --bg-primary: #0f172a;
-  /* Rich dark blue-gray */
   --bg-secondary: #1e293b;
-  /* Lighter blue-gray */
   --bg-tertiary: #334155;
-  /* Hover states/inputs */
   --bg-elevated: #283548;
-  /* Cards/Modals */
-  --bg-target: rgba(99, 102, 241, 0.1);
-  /* Highlight for active item */
-
-  --accent-primary: #6366f1;
-  /* Indigo-500 */
-  --accent-secondary: #818cf8;
-  /* Indigo-400 */
-  --accent-hover: #4f46e5;
-  /* Indigo-600 */
+  --bg-target: rgba(255, 255, 255, 0.05);
 
   --text-primary: #f8fafc;
-  /* Slate-50 */
   --text-secondary: #94a3b8;
-  /* Slate-400 */
   --text-tertiary: #64748b;
-  /* Slate-500 */
 
   --border-color: rgba(148, 163, 184, 0.1);
-  --border-focus: rgba(99, 102, 241, 0.5);
+  --border-focus: rgba(255, 255, 255, 0.2);
 
   /* Glassmorphism Refined */
-  --glass-bg: rgba(30, 41, 59, 0.7);
-  --glass-border: 1px solid rgba(255, 255, 255, 0.05);
-  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
-  --backdrop-blur: 12px;
+  --glass-bg: rgba(30, 41, 59, 0.65);
+  /* Less opaque for more depth */
+  --glass-border: 1px solid rgba(255, 255, 255, 0.08);
+  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
+  --backdrop-blur: 16px;
 
   /* Spacing */
   --spacing-xs: 4px;
@@ -65,38 +51,67 @@
   --transition-normal: 0.25s ease;
 }
 
-/* Light Theme Overrides */
-[data-theme='light'] {
+/* Light Mode Overrides */
+[data-mode='light'] {
   --bg-primary: #f8fafc;
-  /* Slate-50 - Lighter main bg */
   --bg-secondary: #ffffff;
-  /* White */
   --bg-tertiary: #f1f5f9;
-  /* Slate-100 */
   --bg-elevated: #ffffff;
-  /* White */
-  --bg-target: #ffffff;
-  /* Pure white for active item */
-
-  --accent-primary: #4f46e5;
-  /* Indigo-600 */
-  --accent-secondary: #6366f1;
-  /* Indigo-500 */
-  --accent-hover: #4338ca;
-  /* Indigo-700 */
+  --bg-target: rgba(0, 0, 0, 0.05);
 
   --text-primary: #0f172a;
-  /* Slate-900 */
   --text-secondary: #64748b;
-  /* Slate-500 */
   --text-tertiary: #94a3b8;
-  /* Slate-400 */
 
   --border-color: rgba(148, 163, 184, 0.2);
+  --border-focus: rgba(0, 0, 0, 0.1);
 
   --glass-bg: rgba(255, 255, 255, 0.8);
   --glass-border: 1px solid rgba(255, 255, 255, 0.8);
   --glass-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+}
+
+/* Color Themes */
+/* Blue (Default) */
+[data-color='blue'] {
+  --accent-primary: #3b82f6;
+  --accent-secondary: #60a5fa;
+  --accent-hover: #2563eb;
+}
+
+/* Red */
+[data-color='red'] {
+  --accent-primary: #ef4444;
+  --accent-secondary: #f87171;
+  --accent-hover: #dc2626;
+}
+
+/* Green */
+[data-color='green'] {
+  --accent-primary: #10b981;
+  --accent-secondary: #34d399;
+  --accent-hover: #059669;
+}
+
+/* Yellow/Amber */
+[data-color='yellow'] {
+  --accent-primary: #f59e0b;
+  --accent-secondary: #fbbf24;
+  --accent-hover: #d97706;
+}
+
+/* Purple */
+[data-color='purple'] {
+  --accent-primary: #8b5cf6;
+  --accent-secondary: #a78bfa;
+  --accent-hover: #7c3aed;
+}
+
+/* Pink */
+[data-color='pink'] {
+  --accent-primary: #ec4899;
+  --accent-secondary: #f472b6;
+  --accent-hover: #db2777;
 }
 
 * {
@@ -140,7 +155,7 @@ body {
   background: rgba(148, 163, 184, 0.4);
 }
 
-/* Utility Classes */
+/*------------------------------------------- Utility Classes ----------------------------------------------*/
 .glass-panel {
   background: var(--glass-bg);
   backdrop-filter: blur(var(--backdrop-blur));
@@ -153,6 +168,7 @@ body {
 .text-gradient {
   background: linear-gradient(135deg, var(--text-primary) 0%, var(--text-secondary) 100%);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
@@ -188,8 +204,18 @@ body {
 
 .input-field:focus {
   background: var(--bg-secondary);
-  border-color: var(--border-focus);
-  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+  /* Adjust dynamically if possible, or stick to neutral */
+}
+
+/* Dynamic Focus Shadow based on active theme would need JS or complicated CSS vars, 
+   sticking to a neutral focus ring for now or using accent var directly if supported well */
+.input-field:focus {
+  background: var(--bg-secondary);
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px var(--bg-target);
+  /* Use bg-target as a soft glow proxy */
 }
 
 .chat-item {
@@ -198,7 +224,6 @@ body {
 
 .chat-item:hover {
   background-color: var(--bg-tertiary);
-  transform: translateX(4px);
 }
 
 /* Button Utilities */
@@ -275,4 +300,89 @@ body {
 
 .animate-slide-in {
   animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Dropdown Menu Styles */
+.dropdown-menu {
+  position: absolute;
+  z-index: 1000;
+  background: var(--bg-elevated);
+  backdrop-filter: blur(var(--backdrop-blur));
+  -webkit-backdrop-filter: blur(var(--backdrop-blur));
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.3);
+  padding: 8px;
+  min-width: 260px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  animation: dropdownFadeIn 0.2s cubic-bezier(0, 0, 0.2, 1);
+}
+
+@keyframes dropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  border: none;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+}
+
+.dropdown-item:hover {
+  background: var(--bg-target);
+  color: var(--text-primary);
+}
+
+.dropdown-item.danger {
+  color: #ef4444;
+}
+
+.dropdown-item.danger:hover {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.dropdown-item-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: var(--bg-tertiary);
+  border-radius: 8px;
+  /* Slightly squircle for modern look */
+  color: var(--text-secondary);
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.dropdown-item:hover .dropdown-item-icon {
+  background: var(--accent-primary);
+  color: white;
+}
+
+.dropdown-divider {
+  height: 1px;
+  background: var(--border-color);
+  margin: 4px 8px;
 }

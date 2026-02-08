@@ -1,0 +1,34 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="brand-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3B82F6" />
+      <stop offset="100%" stop-color="#8B5CF6" />
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="1" />
+      <feOffset dx="1" dy="1" result="offsetblur" />
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.3" />
+      </feComponentTransfer>
+      <feMerge>
+        <feMergeNode />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Outer Glow/Soft Shadow -->
+  <circle cx="32" cy="32" r="28" fill="url(#brand-grad)" fill-opacity="0.1" />
+  
+  <!-- Modern Chat Bubble Icon -->
+  <path d="M48 24C48 15.1634 39.9411 8 30 8C20.0589 8 12 15.1634 12 24C12 28.7831 14.3686 33.053 18.2 35.9L16 46L26.5 41.5C27.625 41.8333 28.8 42 30 42C39.9411 42 48 34.8366 48 24Z" 
+        fill="url(#brand-grad)" 
+        filter="url(#shadow)" />
+        
+  <!-- Subtle Internal Detail -->
+  <path d="M22 22H38M22 30H32" 
+        stroke="white" 
+        stroke-width="3" 
+        stroke-linecap="round" 
+        stroke-opacity="0.9" />
+</svg>
